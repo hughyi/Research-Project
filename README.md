@@ -16,3 +16,5 @@ This study enhances the Federated Multi-Armed Bandit (FMAB) algorithm for cognit
 
 - **Fed2 UCB** (client cooperation) outperforms **Fed1 UCB** (independent client behavior) in reducing regret and communication costs.
 - Randomized mean rewards and spectrum sensing lead to more efficient and effective decision-making in dynamic spectrum conditions.
+
+For future reference, here is the [link](https://www.notion.so/jso1/648ff13ebdb54293ad4fb6455687605c) to the notes organized in Notion.
