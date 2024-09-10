@@ -1,27 +1,25 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-## fp 일정한 이유: 전달 단계에서의 통신 비용을 일정하게 유지하고, 효율적인 데이터 전송을 보장하기 위함
-def fp(p):  # communication phase 결정
+## The communication phase is fixed to maintain a constant cost and ensure efficient data transfer.
+def fp(p):  # Determines the length of the communication phase.
     fp = 100
     return int(fp)
 
 
-def gp(p):  # exploration phase 결정
+def gp(p):  # Determines the length of the exploration phase.
     gp = 2 ** (p)
     return int(gp)
 
 
 def spectrum_sensing(mu):
-    idle_freq = []  # idle한 주파수 대역의 인덱스를 저장하는 리스트
+    idle_freq = []  # List to store indices of idle frequency bands
 
     for i in range(K):
-        # 주파수 대역에서의 에너지 수준 측정
+        # Measure the energy level in the frequency band
         energy_level = measure_energy(mu, i)
 
+        # If energy exceeds the idle threshold, consider it an idle band
         if energy_level > idle_threshold:
             idle_freq.append(i)
 
@@ -29,80 +27,75 @@ def spectrum_sensing(mu):
 
 
 def measure_energy(mu, freq_index):
-    # 특정 주파수 대역에서의 에너지 수준을 측정하는 함수
-    # mu 값을 활용하여 에너지 수준을 추정
-
-    # mu 값을 활용하여 주파수 대역의 보상 값을 추정
-    reward_level = mu[freq_index]
-
+    # Measure the energy level in a specific frequency band using the global mean (mu).
+    reward_level = mu[freq_index]  # Estimate reward level for the band
     return reward_level
 
 
-N = 100  # repeat times
-K = 10
+N = 100  # Number of experiments
+K = 10   # Number of frequency bands
 global T
-T = int(1e6)
-sigma = 1 / 2
-sigma_c = 1 / 50
+T = int(1e6)  # Total number of rounds
+sigma = 1 / 2  # Noise level
+sigma_c = 1 / 50  # Noise level for communication
 
-comm_c = 0
+comm_c = 0  # Communication cost accumulator
 regret = np.zeros([N, T])
-idle_threshold = 0.5  # 주파수 대역이 idle로 판단되는 임계값
+idle_threshold = 0.5  # Threshold to determine if a frequency is idle
 
-# mu_global = np.array([0.7, 0.71, 0.72, 0.73, 0.74, 0.75, 0.76, 0.765, 0.77, 0.79])
+# Randomly generate global mean rewards for each frequency band
 mu_global = np.random.uniform(low=0, high=1, size=K)
 
-# 주파수 대역이 idle한지 확인하기 위해 spectrum_sensing 함수 호출
+# Perform spectrum sensing to identify idle frequencies
 idle_freq = spectrum_sensing(mu_global)
 
+# Start the repetition of experiments
 for rep in range(N):
-    t = 0
-    p = 1
-    M = 0
+    t = 0  # Time step
+    p = 1  # Phase step
+    M = 0  # Number of local players
 
-    # active_arm = np.array(range(K), dtype=int)
-    # idle한 주파수 대역을 active_arm으로 설정
+    # Set active arms to the idle frequencies identified
     active_arm = idle_freq
-    C = 1  # communication loss
-    reward_global = np.zeros(T)
-    optimal_reward = np.zeros(T)
+    C = 1  # Communication loss factor
+    reward_global = np.zeros(T)  # Global reward
+    optimal_reward = np.zeros(T)  # Optimal reward for comparison
 
-    optimal_index = np.where(mu_global == np.max(mu_global))
+    optimal_index = np.where(mu_global == np.max(mu_global))  # Identify optimal arm
 
     while t < T:
         """
-        round p
+        Start of round p
         """
         """
-        local players
+        Local players (devices)
         """
         if len(active_arm) > 1:
-            player_add_num = gp(p)
+            player_add_num = gp(p)  # Determine number of players to add in this phase
             if M == 0:
+                # If no players are initialized yet, create the first player
                 M += 1
                 pull_num = np.zeros([1, K])
                 reward_local = np.zeros([1, K])
                 mu_local = np.zeros([1, K])
                 for k in range(K):
-                    mu_local[M - 1, k] = np.random.normal(
-                        mu_global[k], sigma_c
-                    )  # generated local mean
+                    mu_local[M - 1, k] = np.random.normal(mu_global[k], sigma_c)  # Initialize local means
                 player_add_num -= 1
 
+            # Add new players based on gp(p)
             for m in range(player_add_num):
                 M += 1
                 pull_num = np.r_[pull_num, np.zeros([1, K])]
                 reward_local = np.r_[reward_local, np.zeros([1, K])]
                 mu_local = np.r_[mu_local, np.zeros([1, K])]
                 for k in range(K):
-                    mu_local[M - 1, k] = np.random.normal(
-                        mu_global[k], sigma_c
-                    )  # generated local mean
+                    mu_local[M - 1, k] = np.random.normal(mu_global[k], sigma_c)  # Generate local means for new players
 
-        expl_len = fp(p)
+        expl_len = fp(p)  # Length of the communication phase
         p += 1
 
         if len(active_arm) > 1:
+            # Perform exploration and collect rewards
             for k in active_arm:
                 for _ in range(min(T - t, expl_len)):
                     for m in range(M):
@@ -114,62 +107,68 @@ for rep in range(N):
                     optimal_reward[t] = optimal_reward[t - 1] + M * np.random.normal(
                         mu_global[optimal_index][0], sigma_c
                     )
-                    t = t + 1
-            mu_local_sample = reward_local / pull_num
+                    t += 1
+            mu_local_sample = reward_local / pull_num  # Estimate local mean rewards
 
-        # 모든 arm이 exploration phase를 마치고 최적 arm이 결정되었을 때를 의미
+        # If only one arm is active, this means the optimal arm has been found
         if len(active_arm) == 1:
+            # Exploit the best arm until the end of time
             reward_global[t:] = (
                 reward_global[t - 1] + np.arange(T - t) * M * mu_global[active_arm[0]]
             )
             optimal_reward[t:] = (
                 optimal_reward[t - 1] + np.arange(T - t) * M * mu_global[optimal_index]
             )
-            break  # 모든 arm 결정, 고로 loop break
+            break  # Exit loop when only one arm is active
+
         """
-        global server
+        Global server phase
         """
         if len(active_arm) > 1:
-            reward_global[t - 1] -= (
-                M * C
-            )  # comment this line out to ignore communication loss
-            comm_c += M
-            E = np.array(
-                []
-            )  # E는 Exploration Set for arms that have lower reward than UCB
+            reward_global[t - 1] -= M * C  # Apply communication cost (comment out to ignore this cost)
+            comm_c += M  # Accumulate communication cost
+            E = np.array([])  # Set of arms to be eliminated (based on UCB)
+
+            # Estimate global mean reward from local samples
             mu_global_sample = 1 / M * sum(mu_local_sample)
-            eta_p = 0  # fed1과 차이를 보이는 부분(exploration phase의 가중치) -> 이후 conf_bnd 계산에 포함
-            for i in range(1, p):  # p has been added one above
+
+            # Calculate exploration phase weight (eta_p) - differs from fed1
+            eta_p = 0  
+            for i in range(1, p):  # Sum over previous phases
                 F_d = 0
                 for j in range(i, p):
                     F_d += fp(j)
                 eta_p += 1 / M**2 * gp(i) / F_d
 
+            # Calculate confidence bound, tuned for better performance
             conf_bnd = np.sqrt(sigma**2 * eta_p * np.log(T)) + np.sqrt(
-                sigma_c**2 * np.log(T) / (M)
-            )  # the constants are tuned from the original ones in the paper to get better performance
+                sigma_c**2 * np.log(T) / M
+            )
 
+            # Identify the maximum element (arm) based on estimated rewards
             elm_max = np.nanmax(mu_global_sample) - conf_bnd
             for index in range(len(active_arm)):
                 arm = active_arm[index]
                 if mu_global_sample[arm] + conf_bnd < elm_max:
-                    E = np.append(E, np.array([arm]))  # 이후에 exclude from active_arm
+                    E = np.append(E, np.array([arm]))  # Add arm to elimination set
 
+            # Eliminate arms with low rewards
             for i in range(len(E)):
                 active_arm = np.delete(active_arm, np.where(active_arm == E[i]))
 
-    regret[rep] = optimal_reward - reward_global
+    regret[rep] = optimal_reward - reward_global  # Calculate regret for the current repetition
 
+# Plot the results
 plt.figure()
-avg_regret = 1 / N * sum(regret)  # avg regret per experiment
-err_regret = np.sqrt(np.var(abs(avg_regret - regret), axis=0))
+avg_regret = 1 / N * sum(regret)  # Average regret per experiment
+err_regret = np.sqrt(np.var(abs(avg_regret - regret), axis=0))  # Error in regret calculation
 print(
     "regret:",
-    avg_regret[-1],
+    avg_regret[-1],  # Final regret at the last time step
     "comm:",
-    comm_c / N,
+    comm_c / N,  # Average communication cost
     "delta:",
-    round(np.sort(mu_global)[-1] - np.sort(mu_global)[-2], 3),
+    round(np.sort(mu_global)[-1] - np.sort(mu_global)[-2], 3),  # Gap between the two best arms
 )
 plt.plot(range(T), avg_regret, label="Regret")
 plt.xlabel("Number of Rounds")
