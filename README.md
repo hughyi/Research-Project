@@ -1,6 +1,6 @@
 # Spectrum Sensing-Enhanced Federated Multi-Armed Bandit for Cognitive Radio
 
-This repository contains the code and findings from the research paper titled **"Spectrum Sensing-Enhanced Federated Multi-Armed Bandit for Cognitive Radio"** by Kanghee Lee and Jungmin So, conducted under the Department of Computer Science and Engineering at Sogang University.
+This repository contains the code and findings from the research paper titled **"Spectrum Sensing-Enhanced Federated Multi-Armed Bandit for Cognitive Radio"** by Ganghui Yi and Jungmin So, conducted under the Department of Computer Science and Engineering at Sogang University.
 
 ## Abstract
 
