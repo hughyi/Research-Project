@@ -10,7 +10,7 @@ This study enhances the Federated Multi-Armed Bandit (FMAB) algorithm for cognit
 
 1. Code Implementation
 2. Simulation Results
-3. Comparative Analysis between Fed1 UCB and Fed2 UCB
+3. Comparative Analysis between Fed1 and Fed2 UCB
 
 ## Key Findings
 
